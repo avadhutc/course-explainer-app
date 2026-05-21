@@ -4,41 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Flask-based web application that displays course information. The application uses a simple MVC-style architecture with Flask handling routing, view functions rendering templates, and a Course model managing course data.
+Flask web application that displays course information, using a simple MVC-style architecture. No database — all course data is hardcoded in-memory.
 
-## Development Environment
-
-### Setup
+## Commands
 
 ```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# Unix/Mac
-python -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Running the Application
-
-```bash
+# Run the application
 python src/app.py
-```
+# Available at http://127.0.0.1:5000
 
-The application will be available at `http://127.0.0.1:5000`
-
-### Running Tests
-
-```bash
 # Run all tests
 python -m unittest discover -s tests
-
-# Run a specific test file
-python -m unittest tests.test_app
 
 # Run a specific test case
 python -m unittest tests.test_app.AppTestCase.test_index
@@ -46,49 +22,27 @@ python -m unittest tests.test_app.AppTestCase.test_index
 
 ## Architecture
 
-### Application Structure
+**Entry point**: [src/app.py](src/app.py) — creates the Flask app and registers routes via `add_url_rule()` (not decorators), keeping views decoupled from Flask.
 
-The application follows a modular Flask design:
+**Views**: [src/views.py](src/views.py) — pure functions, import only `render_template` from Flask. Adding a new route means adding a function here and wiring it in `app.py`.
 
-- **src/app.py**: Application entry point and Flask configuration. Routes are registered using `add_url_rule()` rather than decorators, which allows views to remain decoupled from Flask.
-- **src/views.py**: View functions that handle HTTP requests and return rendered templates. Views are pure functions that don't depend on Flask decorators.
-- **src/models.py**: Data models (currently in-memory Course objects stored in a list). No database backend - all course data is hardcoded.
-- **src/templates/**: Jinja2 HTML templates with inheritance structure (layout.html as base)
-- **src/static/css/**: CSS stylesheets for the application
+**Data**: [src/models.py](src/models.py) — `Course` class with `title`, `description`, `instructor`, `duration`. A module-level `courses` list holds all data. No IDs — courses are referenced by list index.
 
-### Key Design Patterns
+**Templates**: `src/templates/` — `layout.html` is the base. `course.html` uses `{% extends 'layout.html' %}`. `index.html` currently uses `{% include %}` instead of `{% extends %}` — inconsistent, fix if touching that template.
 
-1. **Separation of concerns**: Routes (app.py), view logic (views.py), and data (models.py) are separated into distinct modules.
-2. **Template inheritance**: Templates use Jinja2's extends/block pattern with layout.html as the base template.
-3. **Manual route registration**: Routes are registered with `add_url_rule()` instead of `@app.route()` decorators, allowing view functions to be imported and registered separately.
+**Tests**: [tests/test_app.py](tests/test_app.py) — `sys.path` is patched at the top of the test file to add `src/` since it is not a package. Tests use Flask's built-in test client.
 
-### Data Model
+## Known Issues / Gaps
 
-- Course data is stored in-memory as a list of Course objects in models.py
-- No database or persistence layer exists
-- To add new courses, modify the `courses` list in models.py
-
-## Important Notes
-
-- The views.py module imports only `render_template` from Flask, maintaining loose coupling
-- Course IDs in URLs are currently just passed to templates but not used to look up actual Course objects
-- The .env file contains Flask configuration (FLASK_APP and FLASK_ENV)
-- Virtual environment (venv/) should not be committed to version control
+- `course.html` references `course.topics` and `course.title/description/instructor/duration` as template variables, but the `course` view only passes `course_id` (not a `Course` object). The course detail page will render blank/error for those fields until the view is updated to look up and pass the actual `Course` object.
+- `Course` has no `topics` attribute — the template's `{% for topic in course.topics %}` loop requires adding this field to the model.
+- Courses have no stable ID — to implement course lookup by URL `course_id`, either assign IDs to `Course` objects or use list index.
 
 ## Development Workflow
 
-### Add Unit Tests
-
-- Whenever you add any changes add unit tests and run and make sure the tests passes.
-
-### Verify Changes with Playwright (MANDATORY)
-
-**After implementing any new feature, you MUST:**
-
-1. Start the Flask application (if not already running - `python src/app.py`)
-2. Use the Playwright MCP tool to connect to the application at `http://127.0.0.1:5000`
-3. Navigate to and interact with the new feature to verify it works correctly
-4. Take a screenshot of the working feature
-5. Save the screenshot in the `test-output/` folder with a descriptive filename (e.g., `feature-name-verification-YYYY-MM-DD.png`)
-
-This step ensures that all features are visually verified and provides documentation of the working state of the application.
+- Add unit tests for every change and confirm they pass before finishing.
+- After implementing any new feature, verify it visually using the Playwright MCP tool:
+  1. Start the app (`python src/app.py`)
+  2. Connect Playwright to `http://127.0.0.1:5000`
+  3. Interact with the feature and take a screenshot
+  4. Save the screenshot to `test-output/` with a descriptive name (e.g., `feature-name-YYYY-MM-DD.png`)
