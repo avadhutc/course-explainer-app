@@ -15,12 +15,13 @@ class AppTestCase(unittest.TestCase):
     def test_index(self):
         response = self.app.get('/')
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Welcome to the Course Explainer', response.data)
+        self.assertIn(b'Available Courses', response.data)
+        self.assertIn(b'Introduction to Python', response.data)
 
     def test_course(self):
         response = self.app.get('/course/1')
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Course Details', response.data)
+        self.assertIn(b'Introduction to Python', response.data)
 
 if __name__ == '__main__':
     unittest.main()
